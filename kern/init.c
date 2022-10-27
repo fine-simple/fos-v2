@@ -3,31 +3,38 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/assert.h>
+#include <inc/memlayout.h>
+#include <inc/timerreg.h>
+#include <kern/cons/console.h>
+#include <kern/proc/user_environment.h>
+#include <kern/trap/trap.h>
+#include <kern/trap/fault_handler.h>
+#include <kern/cpu/picirq.h>
+#include <kern/conc/semaphore_manager.h>
+#include <inc/dynamic_allocator.h>
+#include "kern/cmd/command_prompt.h"
+#include <kern/cpu/kclock.h>
+#include <kern/cpu/sched.h>
+#include <kern/mem/boot_memory_manager.h>
+#include <kern/mem/kheap.h>
+#include <kern/mem/memory_manager.h>
+#include <kern/mem/shared_memory_manager.h>
+#include <kern/tests/utilities.h>
 
-#include <kern/command_prompt.h>
-#include <kern/console.h>
-#include <kern/memory_manager.h>
-#include <kern/helpers.h>
-#include <kern/kclock.h>
-#include <kern/user_environment.h>
-#include <kern/trap.h>
 
-
-//Functions Declaration 
+//Functions Declaration
 //======================
 void print_welcome_message();
 //=======================================
 
-
-
 //First ever function called in FOS kernel
 void FOS_initialize()
 {
-	//get actual addresses after code linking 
+	//get actual addresses after code linking
 	extern char start_of_uninitialized_data_section[], end_of_kernel[];
 
 	// Before doing anything else,
-	// clear the uninitialized global data (BSS) section of our program, from start_of_uninitialized_data_section to end_of_kernel 
+	// clear the uninitialized global data (BSS) section of our program, from start_of_uninitialized_data_section to end_of_kernel
 	// This ensures that all static/global variables start with zero value.
 	memset(start_of_uninitialized_data_section, 0, end_of_kernel - start_of_uninitialized_data_section);
 
@@ -42,31 +49,58 @@ void FOS_initialize()
 	detect_memory();
 	initialize_kernel_VM();
 	initialize_paging();
-	page_check();
+	//	page_check();
+
+	//Project initializations
+
+	setPageReplacmentAlgorithmCLOCK();
+	setUHeapPlacementStrategyFIRSTFIT();
+	setKHeapPlacementStrategyFIRSTFIT();
+
+#if USE_KHEAP
+	//2022:
+	{
+		initialize_dyn_block_system();
+	}
+	MAX_SHARES = (KERNEL_SHARES_ARR_INIT_SIZE) / sizeof(struct Share);
+	MAX_SEMAPHORES = (KERNEL_SEMAPHORES_ARR_INIT_SIZE) / sizeof(struct Semaphore);
+#endif
+	create_shares_array(MAX_SHARES);
+	create_semaphores_array(MAX_SEMAPHORES);
 
 	// Lab 3 user environment initialization functions
 	env_init();
 	idt_init();
 
+	enableBuffering(0);
+	enableModifiedBuffer(0) ;
+	setModifiedBufferLength(1000);
+
+	// Lab 4 multitasking initialization functions
+	pic_init();
+	sched_init() ;
+
+	//Project initializations
+
 	// start the kernel command prompt.
-	while (1)
+	while (1==1)
 	{
-		cprintf("\n\n\n\n\n");
-		cprintf("FOSv2 started successfully.\n");
-		cprintf("Type 'help' to see commands...\n");
-		cprintf("\n\n");
+		cprintf("\nWelcome to the FOS kernel command prompt!\n");
+		cprintf("Type 'help' for a list of commands.\n");
 		run_command_prompt();
 	}
 }
 
+
 void print_welcome_message()
 {
 	cprintf("\n\n\n");
-	cprintf("FOSv2\n");
-	cprintf("A JOS-based educational operating system,\n");
-	cprintf("created at FCIS - ASU and maintained on GitHub:\n");
-	cprintf("https://github.com/YoussefRaafatNasry/fos-v2\n");
-	cprintf("\n\n\n");
+	cprintf("\t\t!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	cprintf("\t\t!!                                                             !!\n");
+	cprintf("\t\t!!                   !! FCIS says HELLO !!                     !!\n");
+	cprintf("\t\t!!                                                             !!\n");
+	cprintf("\t\t!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	cprintf("\n\n\n\n");
 }
 
 
@@ -78,26 +112,105 @@ static const char *panicstr;
 
 /*
  * Panic is called on unresolvable fatal errors.
- * It prints "panic: mesg", and then enters the kernel command prompt.
+ * It prints "panic: mesg", exit the curenv and schedule the next environment.
  */
 void _panic(const char *file, int line, const char *fmt,...)
 {
 	va_list ap;
 
-	if (panicstr)
-		goto dead;
+	//if (panicstr)
+	//	goto dead;
 	panicstr = fmt;
 
 	va_start(ap, fmt);
-	cprintf("kernel panic at %s:%d: ", file, line);
+	cprintf("\nkernel panic at %s:%d: ", file, line);
 	vcprintf(fmt, ap);
 	cprintf("\n");
 	va_end(ap);
 
-dead:
-	/* break into the kernel command prompt */
-	while (1==1)
-		run_command_prompt();
+	dead:
+	/* break into the fos scheduler */
+	//2013: Check if the panic occur when running an environment
+	if (curenv != NULL && curenv->env_status == ENV_RUNNABLE)
+	{
+		//2015
+		env_exit();
+		//env_run_cmd_prmpt() ;
+	}
+
+	//2015
+	fos_scheduler();
+	//while (1==1)
+	//	run_command_prompt();
+
+}
+
+/*
+ * Panic is called on unresolvable fatal errors.
+ * It prints "panic: mesg", exit all env's and then enters the kernel command prompt.
+ */
+void _panic_all(const char *file, int line, const char *fmt,...)
+{
+	va_list ap;
+
+	//if (panicstr)
+	//	goto dead;
+	panicstr = fmt;
+
+	va_start(ap, fmt);
+	cprintf("\nkernel panic at %s:%d: ", file, line);
+	vcprintf(fmt, ap);
+	cprintf("\n");
+	va_end(ap);
+
+	dead:
+	/* break into the fos scheduler */
+
+	//exit all ready env's
+	sched_exit_all_ready_envs();
+	if (curenv != NULL)
+	{
+		//cprintf("exit curenv...........\n");
+		sched_exit_env(curenv->env_id);
+		//env_run_cmd_prmpt() ;
+	}
+
+	fos_scheduler();
+}
+
+
+/*
+ * Panic is called on unresolvable fatal errors.
+ * It prints "panic: mesg", exit the curenv (if any) and break into the command prompt.
+ */
+void _panic_into_prompt(const char *file, int line, const char *fmt,...)
+{
+	va_list ap;
+
+	//if (panicstr)
+	//	goto dead;
+	panicstr = fmt;
+
+	va_start(ap, fmt);
+	cprintf("\nkernel panic at %s:%d: ", file, line);
+	vcprintf(fmt, ap);
+	cprintf("\n");
+	va_end(ap);
+
+	dead:
+	/* break into the fos scheduler */
+	//2013: Check if the panic occur when running an environment
+	if (curenv != NULL && curenv->env_status == ENV_RUNNABLE)
+	{
+		sched_insert_exit(curenv);
+		curenv = NULL;
+	}
+
+	lcr3(phys_page_directory);
+
+	scheduler_status = SCH_STOPPED;
+	while (1)
+		run_command_prompt(NULL);
 }
 
 /* like panic, but don't enters the kernel command prompt*/
@@ -106,7 +219,7 @@ void _warn(const char *file, int line, const char *fmt,...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	cprintf("kernel warning at %s:%d: ", file, line);
+	cprintf("\nkernel warning at %s:%d: ", file, line);
 	vcprintf(fmt, ap);
 	cprintf("\n");
 	va_end(ap);
