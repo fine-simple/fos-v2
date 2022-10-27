@@ -42,7 +42,13 @@ void run_command_prompt()
 //define the white-space symbols
 #define WHITESPACE "\t\r\n "
 
-//Function to parse any command and execute it
+
+// Function to check if string is the begining of another string
+bool startWith(char *prefix, char *word)
+{
+	return strncmp(prefix, word, strlen(prefix)) == 0;
+}
+// Function to parse any command and execute it
 //(simply by calling its corresponding function)
 int execute_command(char *command_string)
 {
@@ -76,8 +82,21 @@ int execute_command(char *command_string)
 	}
 	else
 	{
-		//if not found, then it's unknown command
-		cprintf("Unknown command '%s'\n", arguments[0]);
+		// print any similar commands
+		int similar_found = 0;
+		for (int i = 0; i < NUM_OF_COMMANDS; i++)
+		{
+			if(startWith(arguments[0], commands[i].name))
+			{
+				cprintf("%s\n", commands[i].name);
+				similar_found++;
+			}
+		}
+
+		// if not found, then it's unknown command
+		if(!similar_found)
+			cprintf("Unknown command '%s'\n", arguments[0]);
+
 		return 0;
 	}
 }
