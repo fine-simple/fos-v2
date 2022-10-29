@@ -185,10 +185,45 @@ struct MemBlock *alloc_block_BF(uint32 size)
 //=========================================
 struct MemBlock *alloc_block_NF(uint32 size)
 {
-	//TODO: [PROJECT MS1 - BONUS] [DYNAMIC ALLOCATOR] alloc_block_NF
-	// Write your code here, remove the panic and write your code
-	panic("alloc_block_NF() is not implemented yet...!!");
+	// TODO: [PROJECT MS1 - BONUS] [DYNAMIC ALLOCATOR] alloc_block_NF
+	//  Write your code here, remove the panic and write your code
+	static struct MemBlock *lastAllocated;
+	if(lastAllocated == NULL)
+		lastAllocated = LIST_FIRST(&FreeMemBlocksList);
 
+	struct MemBlock *it = lastAllocated;
+	while(LIST_NEXT(it) != lastAllocated)
+	{
+		if (it->size == size)
+		{
+			lastAllocated = LIST_NEXT(it);
+			LIST_REMOVE(&FreeMemBlocksList, it);
+			return it;
+		}
+		else if (it->size > size)
+		{
+			struct MemBlock *newBlock = LIST_FIRST(&AvailableMemBlocksList);
+			newBlock->size = size;
+			newBlock->sva = it->sva;
+			it->size -= size;
+			it->sva += size;
+			lastAllocated = it;
+			LIST_REMOVE(&AvailableMemBlocksList, newBlock);
+			return newBlock;
+		}
+
+		if(LIST_NEXT(it) == NULL)
+		{
+			if(LIST_FIRST(&FreeMemBlocksList) == lastAllocated)
+				break;
+			else
+				it = LIST_FIRST(&FreeMemBlocksList);
+		}
+		else
+			it = LIST_NEXT(it);
+	}
+
+	return NULL;
 }
 
 //===================================================
