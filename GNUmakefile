@@ -69,35 +69,35 @@ OBJDIRS :=
 all:
 # TEMPORARILY MODIFY ALL .c FILES INSIDE "kern/*/" SUBDIR TO FORCE BUILDING THEM EACH TIME (el7 :))
 # OTHERWISE, ANY CHANGE IN ANY .h FILE IN THE ENTIRE CODE WILL NOT REFLECT ON ANY OF THESE "kern/*/*" FILES
-	touch -m kern/cons/console.c
-	touch -m kern/cons/printf.c
-	touch -m kern/cmd/command_prompt.c
-	touch -m kern/cmd/commands.c
-	touch -m kern/disk/pagefile_manager.c
-	touch -m kern/cpu/kclock.c
-	touch -m kern/cpu/sched.c
-	touch -m kern/cpu/picirq.c
-	touch -m kern/mem/boot_memory_manager.c
-	touch -m kern/mem/memory_manager.c
-	touch -m kern/mem/shared_memory_manager.c
-	touch -m kern/mem/kheap.c
-	touch -m kern/mem/paging_helpers.c
-	touch -m kern/mem/working_set_manager.c
-	touch -m kern/mem/chunk_operations.c
-	touch -m kern/proc/user_environment.c
-	touch -m kern/proc/priority_manager.c
-	touch -m kern/proc/user_programs.c
-	touch -m kern/trap/trap.c
-	touch -m kern/trap/trapentry.S
-	touch -m kern/trap/syscall.c
-	touch -m kern/trap/kdebug.c
-	touch -m kern/trap/fault_handler.c
-	touch -m kern/conc/semaphore_manager.c
-	touch -m kern/tests/test_dynamic_allocator.c
-	touch -m kern/tests/test_priority.c
-	touch -m kern/tests/test_kheap.c
-	touch -m kern/tests/utilities.c
-	touch -m kern/tests/test_commands.c
+# touch -m kern/cons/console.c
+# touch -m kern/cons/printf.c
+# touch -m kern/cmd/command_prompt.c
+# touch -m kern/cmd/commands.c
+# touch -m kern/disk/pagefile_manager.c
+# touch -m kern/cpu/kclock.c
+# touch -m kern/cpu/sched.c
+# touch -m kern/cpu/picirq.c
+# touch -m kern/mem/boot_memory_manager.c
+# touch -m kern/mem/memory_manager.c
+# touch -m kern/mem/shared_memory_manager.c
+# touch -m kern/mem/kheap.c
+# touch -m kern/mem/paging_helpers.c
+# touch -m kern/mem/working_set_manager.c
+# touch -m kern/mem/chunk_operations.c
+# touch -m kern/proc/user_environment.c
+# touch -m kern/proc/priority_manager.c
+# touch -m kern/proc/user_programs.c
+# touch -m kern/trap/trap.c
+# touch -m kern/trap/trapentry.S
+# touch -m kern/trap/syscall.c
+# touch -m kern/trap/kdebug.c
+# touch -m kern/trap/fault_handler.c
+# touch -m kern/conc/semaphore_manager.c
+# touch -m kern/tests/test_dynamic_allocator.c
+# touch -m kern/tests/test_priority.c
+# touch -m kern/tests/test_kheap.c
+# touch -m kern/tests/utilities.c
+# touch -m kern/tests/test_commands.c
 
 # Eliminate default suffix rules
 .SUFFIXES:
