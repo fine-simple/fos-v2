@@ -74,10 +74,14 @@ void initialize_MemBlocksList(uint32 numOfBlocks)
 //===============================
 struct MemBlock *find_block(struct MemBlock_List *blockList, uint32 va)
 {
-	//TODO: [PROJECT MS1] [DYNAMIC ALLOCATOR] find_block
-	// Write your code here, remove the panic and write your code
-	panic("find_block() is not implemented yet...!!");
-
+	// TODO: [PROJECT MS1] [DYNAMIC ALLOCATOR] find_block
+	struct MemBlock *it;
+	LIST_FOREACH(it, blockList)
+	{
+		if (it->sva == va)
+			return it;
+	}
+	return NULL;
 }
 
 //=========================================
