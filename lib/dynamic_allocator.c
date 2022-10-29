@@ -115,9 +115,27 @@ void insert_sorted_allocList(struct MemBlock *blockToInsert)
 //=========================================
 struct MemBlock *alloc_block_FF(uint32 size)
 {
-	//TODO: [PROJECT MS1] [DYNAMIC ALLOCATOR] alloc_block_FF
-	// Write your code here, remove the panic and write your code
-	panic("alloc_block_FF() is not implemented yet...!!");
+	// TODO: [PROJECT MS1] [DYNAMIC ALLOCATOR] alloc_block_FF
+	struct MemBlock *it;
+	LIST_FOREACH(it, &FreeMemBlocksList)
+	{
+		if (it->size == size)
+		{
+			LIST_REMOVE(&FreeMemBlocksList, it);
+			return it;
+		}
+		else if (it->size > size)
+		{
+			struct MemBlock *newBlock = LIST_FIRST(&AvailableMemBlocksList);
+			newBlock->size = size;
+			newBlock->sva = it->sva;
+			it->size -= size;
+			it->sva += size;
+			LIST_REMOVE(&AvailableMemBlocksList, newBlock);
+			return newBlock;
+		}
+	}
+	return NULL;
 }
 
 //=========================================
