@@ -143,11 +143,42 @@ struct MemBlock *alloc_block_FF(uint32 size)
 //=========================================
 struct MemBlock *alloc_block_BF(uint32 size)
 {
-	//TODO: [PROJECT MS1] [DYNAMIC ALLOCATOR] alloc_block_BF
-	// Write your code here, remove the panic and write your code
-	panic("alloc_block_BF() is not implemented yet...!!");
-}
+	// TODO: [PROJECT MS1] [DYNAMIC ALLOCATOR] alloc_block_BF
+	//  Write your code here, remove the panic and write your code
+	struct MemBlock *minBlock = NULL;
+	struct MemBlock *it;
+	LIST_FOREACH(it, &FreeMemBlocksList)
+	{
+		if (it->size >= size)
+		{
+			if (minBlock == NULL)
+				minBlock = it;
+			else if (minBlock->size > it->size)
+				minBlock = it;
+		}
+	}
 
+	if (minBlock != NULL)
+	{
+		if(minBlock->size == size)
+		{
+			LIST_REMOVE(&FreeMemBlocksList, minBlock);
+			return minBlock;
+		}
+		else
+		{
+			struct MemBlock *newBlock = LIST_FIRST(&AvailableMemBlocksList);
+			newBlock->size = size;
+			newBlock->sva = minBlock->sva;
+			minBlock->size -= size;
+			minBlock->sva += size;
+			LIST_REMOVE(&AvailableMemBlocksList, newBlock);
+			return newBlock;
+		}
+	}
+
+	return NULL;
+}
 
 //=========================================
 // [7] ALLOCATE BLOCK BY NEXT FIT:
